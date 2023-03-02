@@ -11,6 +11,10 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const nodemailer = require("nodemailer");
 const EMAIL = process.env.EMAIL;
 const PASSWORD = process.env.PASSWORD;
+const stripe = require("stripe")(
+  "sk_test_51Mh4WMSALocLvJ0NUup6rPFwAwVXueTrQcRi7Q5HM9DjDccxNWlH3h5TiSRYvnYpyIqtdSHAs3wWruhHzuBBeP40006v89GplZ"
+);
+const { v4: uuidv4 } = require("uuid");
 
 app.use(
   cors({
@@ -29,8 +33,8 @@ app.post("/user/register", async (req, res) => {
     const db = connection.db("pizza_application");
 
     //hash
-    var salt = await bcrypt.genSalt(10); //$2b$10$TuImFpJf327l0XDn5.Ropu
-    var hash = await bcrypt.hash(req.body.password, salt); //$2b$10$h0vKL1wJUpyhf0Q2EHPbcuzeih1kCX7c891uS70nB5FFjRkBSaDHC
+    var salt = await bcrypt.genSalt(10);
+    var hash = await bcrypt.hash(req.body.password, salt);
     // console.log(hash);
 
     req.body.password = hash;
@@ -388,16 +392,39 @@ app.delete("/deletevm/:vmId", async (req, res) => {
 //order
 //post order
 app.post("/order", async (req, res) => {
+  const { token, total, user, cartItems } = req.body;
   try {
+    //   const customer = await stripe.customers.create({
+    //     email: token.email,
+    //     source: token.id,
+    //   });
+
+    //   const payment = await stripe.charges.create(
+    //     {
+    //       amount: total * 100,
+    //       currency: "inr",
+    //       customer: customer.id,
+    //       receipt_email: token.email,
+    //     },
+    //     {
+    //       idempotencyKey: uuidv4(),
+    //     }
+    //   );
+
+    //   if (!payment) {
+    //     return res.status(404).json({ message: "payment failed" });
+    //   }
+
     const connection = await mongoclient.connect(URL);
     const db = connection.db("pizza_application");
     const order = await db.collection("order").insertOne(req.body);
     await connection.close();
     res.json({ message: "order created" });
   } catch (error) {
+    console.log(error);
     res
       .status(500)
-      .json({ message: "Something went wrong for order creation" });
+      .json({ message: "Something went wrong for order creation", error });
   }
 });
 
